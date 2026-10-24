@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cruscotto Utente - EBICS</title>
+    <style>
+        body { font-family: sans-serif; background: #f8fafc; padding: 20px; margin: 0; color: #334155; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .balance { font-size: 32px; font-weight: bold; color: #0f172a; margin: 10px 0; }
+        .form-card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        input, button { width: 100%; box-sizing: border-box; padding: 12px; margin: 10px 0; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 16px; }
+        button { background: #635bff; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background: #4f46e5; }
+        #status { padding: 15px; border-radius: 6px; margin-top: 15px; display: none; font-weight: 500; }
+        .success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>Saldo Disponibile (Rete EBICS / CBI Live)</div>
+            <div class="balance" id="balanceDisplay">Caricamento...</div>
+        </div>
+        <div class="form-card">
+            <h3>Disponi Nuovo Payout Automatico</h3>
+            <input type="text" id="recipient" placeholder="Beneficiario / Ragione Sociale">
+            <input type="text" id="iban" placeholder="Codice IBAN di Regolamento">
+            <input type="number" id="amount" placeholder="Importo (€)">
+            <button onclick="executePayout()">Invia Disposizione Bancaria</button>
+            <div id="status"></div>
+        </div>
+    </div>
+    <script>
+        const host = window.location.origin;
+        async function loadBalance() {
+            try {
+                const res = await fetch(host + '/api/balance');
+                const data = await res.json();
+                document.getElementById('balanceDisplay').innerText = '€ ' + data.balance.toLocaleString('it-IT', {minimumFractionDigits: 2});
+            } catch(e) {
+                document.getElementById('balanceDisplay').innerText = 'Errore di connessione API';
+            }
+        }
+        async function executePayout() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.style.display = 'none';
+            const payload = {
+                recipient: document.getElementById('recipient').value,
+                iban: document.getElementById('iban').value,
+                amount: document.getElementById('amount').value
+            };
+            try {
+                const res = await fetch(host + '/api/payout', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                statusDiv.style.display = 'block';
+                if (res.ok) {
+                    statusDiv.className = 'success';
+                    statusDiv.innerText = data.message + ' (ID: ' + data.transactionId + ')';
+                    loadBalance();
+                } else {
+                    statusDiv.className = 'error';
+                    statusDiv.innerText = data.message;
+                }
+            } catch(e) {
+                statusDiv.style.display = 'block';
+                statusDiv.className = 'error';
+                statusDiv.innerText = 'Errore durante l\'invio della richiesta.';
+            }
+        }
+        loadBalance();
+    </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "appId": "com.delcoding.fundingpayout",
+  "appName": "Funding Payout App",
+  "webDir": "public",
+  "server": {
+    "cleartext": true
+  }
+}
